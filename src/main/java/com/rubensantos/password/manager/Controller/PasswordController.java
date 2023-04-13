@@ -29,11 +29,21 @@ public class PasswordController {
      */
 
     @GetMapping("/getPassword/{id}")
-    public Object getPassword(@PathVariable(name="id") Integer id) {
+    public Password getPassword(@PathVariable(name="id") Integer id) {
+
+        //Retrieve the password from the database and assign it to a variable
         Optional<Password> encryptedPassword = passwordRepo.findById(id);
+
+        //Create a new variable to later save the decrypted password
         Password decryptedPassword = new Password();
+
+        //Assign all the required parameters to later return to the user
         decryptedPassword.setPassword(passwordEncryption.decryptPassword(encryptedPassword.get().getPassword()));
         decryptedPassword.setUsername(encryptedPassword.get().getUsername());
+        decryptedPassword.setWebsite(encryptedPassword.get().getWebsite());
+        decryptedPassword.setUrl(encryptedPassword.get().getUrl());
+
+        //Returns the decrypted password to the user
         return decryptedPassword;
     }
 
@@ -44,15 +54,25 @@ public class PasswordController {
 
     @GetMapping("/getAllPasswords")
     public List<Password> getAllPasswords() {
+
+        //Retrieve all the passwords from the database and save on an Iterable list
         Iterable<Password> listOfEncryptedPasswords = passwordRepo.findAll();
+
+        //Create a new List to save all the passwords after they are decrypted
         List<Password> listOfDecryptedPasswords = new ArrayList<>();
 
         for (Password passwordToDecrypt : listOfEncryptedPasswords) {
-            System.out.println(passwordToDecrypt.getPassword());
+            //Create a new password
             Password passwordToSave = new Password();
+
+            //Set all the parameters from the Password retrieved from the database to the one shown to the user
             passwordToSave.setPassword(passwordEncryption.decryptPassword(passwordToDecrypt.getPassword()));
             passwordToSave.setUsername(passwordToDecrypt.getUsername());
             passwordToSave.setId(passwordToDecrypt.getId());
+            passwordToSave.setUrl(passwordToDecrypt.getUrl());
+            passwordToSave.setWebsite(passwordToDecrypt.getWebsite());
+
+            //Save the password to a list that is later returned to the user
             listOfDecryptedPasswords.add(passwordToSave);
         }
 
@@ -65,12 +85,22 @@ public class PasswordController {
      * @param password Desired password used to save
      */
 
-    @PostMapping("/savePassword/{username}/{password}")
-    public String savePassword(@PathVariable(name="username") String username, @PathVariable(name="password") String password) {
+    @PostMapping("/savePassword/{username}/{password}/{website}/{url}")
+    public String savePassword(@PathVariable(name="username") String username,
+                               @PathVariable(name="password") String password,
+                               @PathVariable(name="website") String website,
+                               @PathVariable(name="url") String url)
+    {
+        //Create a new Password and set all the required parameters to later save on the database
         Password passwordToSave = new Password();
         passwordToSave.setPassword(passwordEncryption.encryptPassword(password));
         passwordToSave.setUsername(username);
+        passwordToSave.setWebsite(website);
+        passwordToSave.setUrl(url);
+
+        //Save the password on the database
         passwordRepo.save(passwordToSave);
+
         return "Password successfully saved!";
     }
 

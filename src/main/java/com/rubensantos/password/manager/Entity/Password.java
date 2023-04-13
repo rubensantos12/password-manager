@@ -20,4 +20,8 @@ public class Password {
     private String username;
 
     private String password;
+
+    private String website;
+
+    private String url;
 }
