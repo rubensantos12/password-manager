@@ -1,6 +1,6 @@
 # Java Password Manager
 
-Password Manager API written in Java
+Password Manager API written in Java for a single user
 
 Still a work in progress!
 
@@ -9,10 +9,6 @@ Still a work in progress!
 ## To do
 
 - Implement better password encryption
-
-- Add comments for better code readibility
-
-- Clean up the code
 
 - Create own UI (User Interface)
 
