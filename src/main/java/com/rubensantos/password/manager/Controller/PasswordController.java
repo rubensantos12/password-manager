@@ -22,6 +22,7 @@ public class PasswordController {
     PasswordEncryption passwordEncryption = new PasswordEncryption();
 
     /**
+     *Method used to retrieve a password from the database by ID
      *
      * @param id ID of the password saved
      * @return The password with said ID decrypted
@@ -37,7 +38,7 @@ public class PasswordController {
     }
 
     /**
-     *
+     * Method used to retrieve all passwords from the database
      * @return A List of all usernames and passwords saved on the database
      */
 
@@ -59,7 +60,7 @@ public class PasswordController {
     }
 
     /**
-     *
+     * Method used to save a password to the database
      * @param username Desired username used to save
      * @param password Desired password used to save
      */
@@ -74,6 +75,7 @@ public class PasswordController {
     }
 
     /**
+     *Method used to retrieve a password encrypted from the database
      *
      * @param id The ID of the Password saved
      * @return The Password completely encrypted

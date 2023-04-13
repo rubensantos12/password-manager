@@ -7,6 +7,9 @@ import lombok.Setter;
 @Setter
 public class Details {
 
+    /**
+     * Simple string with the desired key to use in encryption
+     */
     private String key = "@asdawqe##%$%!aa1";
 
 }

@@ -20,5 +20,4 @@ public class Password {
     private String username;
 
     private String password;
-
 }
