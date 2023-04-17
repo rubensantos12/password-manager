@@ -1,13 +1,16 @@
 package com.rubensantos.password.manager.Controller;
 
+import com.rubensantos.password.manager.Dto.UserDto;
 import com.rubensantos.password.manager.Encryption.PasswordEncryption;
 import com.rubensantos.password.manager.Entity.Password;
 import com.rubensantos.password.manager.Repository.PasswordRepo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.context.request.WebRequest;
 
 import java.util.ArrayList;
 import java.util.List;
