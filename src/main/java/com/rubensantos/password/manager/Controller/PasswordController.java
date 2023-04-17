@@ -1,6 +1,5 @@
 package com.rubensantos.password.manager.Controller;
 
-import com.rubensantos.password.manager.Dto.UserDto;
 import com.rubensantos.password.manager.Encryption.PasswordEncryption;
 import com.rubensantos.password.manager.Entity.Password;
 import com.rubensantos.password.manager.Entity.User;
@@ -146,9 +145,16 @@ public class PasswordController {
      * @param email Desired email to register
      * @return The registered user back
      */
-    @PostMapping("/userRegistration/{username/{password}/{email}")
+    @PostMapping("/userRegistration/{username}/{password}/{email}")
     public User userRegistration(@PathVariable(name = "username") String username, @PathVariable(name = "password") String password, @PathVariable(name = "email") String email) {
-        return null;
+        User userToSave = new User();
+        userToSave.setEmail(email);
+        userToSave.setPassword(passwordEncryption.encryptPassword(password));
+        userToSave.setUsername(username);
+
+        userRepo.save(userToSave);
+
+        return userToSave;
     }
 
 }
