@@ -3,7 +3,9 @@ package com.rubensantos.password.manager.Controller;
 import com.rubensantos.password.manager.Dto.UserDto;
 import com.rubensantos.password.manager.Encryption.PasswordEncryption;
 import com.rubensantos.password.manager.Entity.Password;
+import com.rubensantos.password.manager.Entity.User;
 import com.rubensantos.password.manager.Repository.PasswordRepo;
+import com.rubensantos.password.manager.Repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,17 +24,21 @@ public class PasswordController {
     @Autowired
     private PasswordRepo passwordRepo;
 
+    @Autowired
+    private UserRepo userRepo;
+
+
     PasswordEncryption passwordEncryption = new PasswordEncryption();
 
     /**
-     *Method used to retrieve a password from the database by ID
+     * Method used to retrieve a password from the database by ID
      *
      * @param id ID of the password saved
      * @return The password with said ID decrypted
      */
 
     @GetMapping("/getPassword/{id}")
-    public Password getPassword(@PathVariable(name="id") Integer id) {
+    public Password getPassword(@PathVariable(name = "id") Integer id) {
 
         //Retrieve the password from the database and assign it to a variable
         Optional<Password> encryptedPassword = passwordRepo.findById(id);
@@ -52,6 +58,7 @@ public class PasswordController {
 
     /**
      * Method used to retrieve all passwords from the database
+     *
      * @return A List of all usernames and passwords saved on the database
      */
 
@@ -84,16 +91,16 @@ public class PasswordController {
 
     /**
      * Method used to save a password to the database
+     *
      * @param username Desired username used to save
      * @param password Desired password used to save
      */
 
     @PostMapping("/savePassword/{username}/{password}/{website}/{url}")
-    public String savePassword(@PathVariable(name="username") String username,
-                               @PathVariable(name="password") String password,
-                               @PathVariable(name="website") String website,
-                               @PathVariable(name="url") String url)
-    {
+    public String savePassword(@PathVariable(name = "username") String username,
+                               @PathVariable(name = "password") String password,
+                               @PathVariable(name = "website") String website,
+                               @PathVariable(name = "url") String url) {
         //Create a new Password and set all the required parameters to later save on the database
         Password passwordToSave = new Password();
         passwordToSave.setPassword(passwordEncryption.encryptPassword(password));
@@ -108,15 +115,40 @@ public class PasswordController {
     }
 
     /**
-     *Method used to retrieve a password encrypted from the database
+     * Method used to retrieve a password encrypted from the database
      *
      * @param id The ID of the Password saved
      * @return The Password completely encrypted
      */
 
     @GetMapping("/getEncryptedPassword/{id}")
-    public Object getEncryptedPassword(@PathVariable(name="id") Integer id) {
+    public Object getEncryptedPassword(@PathVariable(name = "id") Integer id) {
         return passwordRepo.findById(id);
+    }
+
+    /**
+     * Method used to log in the user into the application
+     *
+     * @param username Username used on register
+     * @param password Password used on register
+     * @return The user back
+     */
+    @GetMapping("/userLogin/{username}/{password}")
+    public User userLogIn(@PathVariable(name = "username") String username, @PathVariable(name = "password") String password) {
+        return null;
+    }
+
+    /**
+     * Method used to register the user and save it on the database
+     *
+     * @param username Desired username to register
+     * @param password Desired password to register
+     * @param email Desired email to register
+     * @return The registered user back
+     */
+    @PostMapping("/userRegistration/{username/{password}/{email}")
+    public User userRegistration(@PathVariable(name = "username") String username, @PathVariable(name = "password") String password, @PathVariable(name = "email") String email) {
+        return null;
     }
 
 }
