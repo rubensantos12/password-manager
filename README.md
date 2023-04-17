@@ -12,6 +12,8 @@ Still a work in progress!
 
 - Create own UI (User Interface)
 
+- Implement user login and register
+
 
 ## FAQ
 
