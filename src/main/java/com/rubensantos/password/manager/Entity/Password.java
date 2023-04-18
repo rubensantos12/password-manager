@@ -15,11 +15,15 @@ public class Password {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
 
+    private Integer userId;
+
     private String username;
 
     private String password;
 
     private String website;
+
+
 
     private String url;
 }

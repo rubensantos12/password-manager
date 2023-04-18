@@ -9,21 +9,20 @@ import com.rubensantos.password.manager.Entity.User;
 import com.rubensantos.password.manager.Repository.PasswordRepo;
 import com.rubensantos.password.manager.Repository.RoleRepo;
 import com.rubensantos.password.manager.Repository.UserRepo;
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 public class PasswordController {
@@ -43,6 +42,8 @@ public class PasswordController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    private SecurityContext securityContext = SecurityContextHolder.getContext();
+
     PasswordEncryption passwordEncryption = new PasswordEncryption();
 
     /**
@@ -53,22 +54,36 @@ public class PasswordController {
      */
 
     @GetMapping("/getPassword/{id}")
-    public Password getPassword(@PathVariable(name = "id") Integer id) {
+    public ResponseEntity<?> getPassword(@PathVariable(name = "id") Integer id) {
 
-        //Retrieve the password from the database and assign it to a variable
-        Optional<Password> encryptedPassword = passwordRepo.findById(id);
+        //check if user is logged in, if not send error back
+        if (securityContext.getAuthentication() == null) {
+            return new ResponseEntity<>("No user logged in, please log in", HttpStatus.UNAUTHORIZED);
+        } else {
 
-        //Create a new variable to later save the decrypted password
-        Password decryptedPassword = new Password();
+                //Retrieve the password from the database and assign it to a variable
+                Optional<Password> encryptedPassword = passwordRepo.findById(id);
+                //Retrieve user from database using email and assign it to a variable
+                Optional<User> user = userRepo.findByEmail(securityContext.getAuthentication().getName());
 
-        //Assign all the required parameters to later return to the user
-        decryptedPassword.setPassword(passwordEncryption.decryptPassword(encryptedPassword.get().getPassword()));
-        decryptedPassword.setUsername(encryptedPassword.get().getUsername());
-        decryptedPassword.setWebsite(encryptedPassword.get().getWebsite());
-        decryptedPassword.setUrl(encryptedPassword.get().getUrl());
+                //Create a new variable to later save the decrypted password
+                Password decryptedPassword = new Password();
 
-        //Returns the decrypted password to the user
-        return decryptedPassword;
+            if (!Objects.equals(encryptedPassword.get().getUserId(), user.get().getId())) {
+                return new ResponseEntity<>("This password doesn't belong to this user!", HttpStatus.FORBIDDEN);
+            } else {
+                //Assign all the required parameters to later return to the user
+                decryptedPassword.setPassword(passwordEncryption.decryptPassword(encryptedPassword.get().getPassword()));
+                decryptedPassword.setUsername(encryptedPassword.get().getUsername());
+                decryptedPassword.setWebsite(encryptedPassword.get().getWebsite());
+                decryptedPassword.setUrl(encryptedPassword.get().getUrl());
+                decryptedPassword.setUserId(user.get().getId());
+                decryptedPassword.setId(encryptedPassword.get().getId());
+
+                //Returns the decrypted password to the user
+                return new ResponseEntity<>(decryptedPassword, HttpStatus.OK);
+            }
+        }
     }
 
     /**
@@ -77,31 +92,42 @@ public class PasswordController {
      * @return A List of all usernames and passwords saved on the database
      */
 
+    // public List<Password> getAllPasswords() {
     @GetMapping("/getAllPasswords")
-    public List<Password> getAllPasswords() {
+    public ResponseEntity<?> getAllPasswords() {
 
-        //Retrieve all the passwords from the database and save on an Iterable list
-        Iterable<Password> listOfEncryptedPasswords = passwordRepo.findAll();
+        //check if user is logged in, if not send error back
+        if (securityContext.getAuthentication() == null) {
+            return new ResponseEntity<>("No user logged in, please log in", HttpStatus.UNAUTHORIZED);
+        } else {
 
-        //Create a new List to save all the passwords after they are decrypted
-        List<Password> listOfDecryptedPasswords = new ArrayList<>();
+            //Retrieve user from database using email and assign it to a variable
+            Optional<User> userOnDatabase = userRepo.findByEmail(securityContext.getAuthentication().getName());
 
-        for (Password passwordToDecrypt : listOfEncryptedPasswords) {
-            //Create a new password
-            Password passwordToSave = new Password();
+            //Retrieve all the passwords from the database and save on an Iterable list
+            Iterable<Password> listOfEncryptedPasswords = passwordRepo.findAllByUserId(userOnDatabase.get().getId());
 
-            //Set all the parameters from the Password retrieved from the database to the one shown to the user
-            passwordToSave.setPassword(passwordEncryption.decryptPassword(passwordToDecrypt.getPassword()));
-            passwordToSave.setUsername(passwordToDecrypt.getUsername());
-            passwordToSave.setId(passwordToDecrypt.getId());
-            passwordToSave.setUrl(passwordToDecrypt.getUrl());
-            passwordToSave.setWebsite(passwordToDecrypt.getWebsite());
+            //Create a new List to save all the passwords after they are decrypted
+            List<Password> listOfDecryptedPasswords = new ArrayList<>();
 
-            //Save the password to a list that is later returned to the user
-            listOfDecryptedPasswords.add(passwordToSave);
+            for (Password passwordToDecrypt : listOfEncryptedPasswords) {
+                //Create a new password
+                Password passwordToSave = new Password();
+
+                //Set all the parameters from the Password retrieved from the database to the one shown to the user
+                passwordToSave.setPassword(passwordEncryption.decryptPassword(passwordToDecrypt.getPassword()));
+                passwordToSave.setUsername(passwordToDecrypt.getUsername());
+                passwordToSave.setId(passwordToDecrypt.getId());
+                passwordToSave.setUrl(passwordToDecrypt.getUrl());
+                passwordToSave.setWebsite(passwordToDecrypt.getWebsite());
+                passwordToSave.setUserId(userOnDatabase.get().getId());
+
+                //Save the password to a list that is later returned to the user
+                listOfDecryptedPasswords.add(passwordToSave);
+            }
+
+            return new ResponseEntity<>(listOfDecryptedPasswords, HttpStatus.OK);
         }
-
-        return listOfDecryptedPasswords;
     }
 
     /**
@@ -112,21 +138,32 @@ public class PasswordController {
      */
 
     @PostMapping("/savePassword/{username}/{password}/{website}/{url}")
-    public String savePassword(@PathVariable(name = "username") String username,
-                               @PathVariable(name = "password") String password,
-                               @PathVariable(name = "website") String website,
-                               @PathVariable(name = "url") String url) {
-        //Create a new Password and set all the required parameters to later save on the database
-        Password passwordToSave = new Password();
-        passwordToSave.setPassword(passwordEncryption.encryptPassword(password));
-        passwordToSave.setUsername(username);
-        passwordToSave.setWebsite(website);
-        passwordToSave.setUrl(url);
+    public ResponseEntity<?> savePassword(@PathVariable(name = "username") String username,
+                                          @PathVariable(name = "password") String password,
+                                          @PathVariable(name = "website") String website,
+                                          @PathVariable(name = "url") String url) {
 
-        //Save the password on the database
-        passwordRepo.save(passwordToSave);
+        //check if user is logged in, if not send error back
+        if (securityContext.getAuthentication() == null) {
+            return new ResponseEntity<>("No user logged in, please log in", HttpStatus.UNAUTHORIZED);
+        } else {
 
-        return "Password successfully saved!";
+            //Retrieve user from database using email and assign it to a variable
+            Optional<User> user = userRepo.findByEmail(securityContext.getAuthentication().getName());
+
+            //Create a new Password and set all the required parameters to later save on the database
+            Password passwordToSave = new Password();
+            passwordToSave.setPassword(passwordEncryption.encryptPassword(password));
+            passwordToSave.setUsername(username);
+            passwordToSave.setWebsite(website);
+            passwordToSave.setUrl(url);
+            passwordToSave.setUserId(user.get().getId());
+
+            //Save the password on the database
+            passwordRepo.save(passwordToSave);
+
+            return new ResponseEntity<>("Password saved successfully.", HttpStatus.OK);
+        }
     }
 
     /**
@@ -137,31 +174,79 @@ public class PasswordController {
      */
 
     @GetMapping("/getEncryptedPassword/{id}")
-    public Object getEncryptedPassword(@PathVariable(name = "id") Integer id) {
-        return passwordRepo.findById(id);
+    public ResponseEntity<?> getEncryptedPassword(@PathVariable(name = "id") Integer id) {
+
+        //check if user is logged in, if not send error back
+        if (securityContext.getAuthentication() == null) {
+            return new ResponseEntity<>("No user logged in, please log in", HttpStatus.UNAUTHORIZED);
+        } else {
+
+            return new ResponseEntity<>(passwordRepo.findById(id), HttpStatus.OK);
+        }
     }
 
+    @DeleteMapping("/deletePassword/{id}")
+    public ResponseEntity<?> removePassword(@PathVariable(name = "id") Integer passwordId) {
+
+        //check if user is logged in, if not send error back
+        if (securityContext.getAuthentication() == null || securityContext.getAuthentication().getName().equals("anonymousUser")) {
+            return new ResponseEntity<>("No user logged in, please log in", HttpStatus.UNAUTHORIZED);
+        } else {
+
+            //Retrieve user from database using email and assign it to a variable
+            Optional<User> user = userRepo.findByEmail(securityContext.getAuthentication().getName());
+
+            Password passwordToDelete = passwordRepo.findById(passwordId).get();
+
+            if (!Objects.equals(passwordToDelete.getUserId(), user.get().getId())) {
+                return new ResponseEntity<>("This password doesn't belong to this user!", HttpStatus.FORBIDDEN);
+            } else {
+
+                passwordRepo.delete(passwordRepo.findById(passwordId).get());
+
+                return new ResponseEntity<>("Password deleted sucesfully", HttpStatus.OK);
+            }
+        }
+    }
+
+    @GetMapping("/log_out")
+    public ResponseEntity<String> logoutUser() {
+        //check if user is logged in, if not send error back
+        if (securityContext.getAuthentication() == null) {
+            return new ResponseEntity<>("No user logged in, please log in", HttpStatus.UNAUTHORIZED);
+        } else {
+
+            securityContext = SecurityContextHolder.getContext();
+            System.out.println(securityContext.getAuthentication().getName());
+            return new ResponseEntity<>("User logged out", HttpStatus.OK);
+        }
+    }
 
     @PostMapping("/signin")
-    public ResponseEntity<String> authenticateUser(@RequestBody LoginDto loginDto){
+    public ResponseEntity<String> authenticateUser(@RequestBody LoginDto loginDto) {
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                 loginDto.getUsernameOrEmail(), loginDto.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        securityContext = SecurityContextHolder.getContext();
+
+        System.out.println(securityContext);
+
         return new ResponseEntity<>("User signed-in successfully!.", HttpStatus.OK);
     }
 
 
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@RequestBody SignUpDto signUpDto){
+    public ResponseEntity<?> registerUser(@RequestBody SignUpDto signUpDto) {
 
         // checks if username exists on the database
-        if(userRepo.existsByUsername(signUpDto.getUsername())){
+        if (userRepo.existsByUsername(signUpDto.getUsername())) {
             return new ResponseEntity<>("Username is already taken!", HttpStatus.BAD_REQUEST);
         }
 
         // checks if email exists on the database
-        if(userRepo.existsByEmail(signUpDto.getEmail())){
+        if (userRepo.existsByEmail(signUpDto.getEmail())) {
             return new ResponseEntity<>("Email is already taken!", HttpStatus.BAD_REQUEST);
         }
 
@@ -177,10 +262,7 @@ public class PasswordController {
 
         userRepo.save(user);
 
-        System.out.println(user.getEmail());
-
         return new ResponseEntity<>("User registered successfully", HttpStatus.OK);
 
     }
-
 }
