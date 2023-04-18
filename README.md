@@ -8,11 +8,9 @@ Still a work in progress!
 
 ## To do
 
-- Implement better password encryption
-
 - Create own UI (User Interface)
 
-- Implement user login and register
+- Fix login so its HTTP based and not Java Thread based
 
 
 ## FAQ
