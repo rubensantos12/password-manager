@@ -15,9 +15,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.ListeningSecurityContextHolderStrategy;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.context.HttpRequestResponseHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.web.HttpSessionRequiredException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -55,7 +60,7 @@ public class PasswordController {
     public ResponseEntity<?> getPassword(@PathVariable(name = "id") Integer id) {
 
         //check if user is logged in, if not send error back
-        if (securityContext.getAuthentication() == null) {
+        if (securityContext.getAuthentication() == null || securityContext.getAuthentication().getName().equals("anonymousUser")) {
             return new ResponseEntity<>("No user logged in, please log in", HttpStatus.UNAUTHORIZED);
         } else {
 
@@ -95,7 +100,7 @@ public class PasswordController {
     public ResponseEntity<?> getAllPasswords() {
 
         //check if user is logged in, if not send error back
-        if (securityContext.getAuthentication() == null) {
+        if (securityContext.getAuthentication() == null || securityContext.getAuthentication().getName().equals("anonymousUser")) {
             return new ResponseEntity<>("No user logged in, please log in", HttpStatus.UNAUTHORIZED);
         } else {
 
@@ -142,7 +147,7 @@ public class PasswordController {
                                           @PathVariable(name = "url") String url) {
 
         //check if user is logged in, if not send error back
-        if (securityContext.getAuthentication() == null) {
+        if (securityContext.getAuthentication() == null || securityContext.getAuthentication().getName().equals("anonymousUser")) {
             return new ResponseEntity<>("No user logged in, please log in", HttpStatus.UNAUTHORIZED);
         } else {
 
@@ -175,7 +180,7 @@ public class PasswordController {
     public ResponseEntity<?> getEncryptedPassword(@PathVariable(name = "id") Integer id) {
 
         //check if user is logged in, if not send error back
-        if (securityContext.getAuthentication() == null) {
+        if (securityContext.getAuthentication() == null || securityContext.getAuthentication().getName().equals("anonymousUser")) {
             return new ResponseEntity<>("No user logged in, please log in", HttpStatus.UNAUTHORIZED);
         } else {
 
@@ -193,13 +198,15 @@ public class PasswordController {
 
             //Retrieve user from database using email and assign it to a variable
             Optional<User> user = userRepo.findByEmail(securityContext.getAuthentication().getName());
-
+            //Retrieve password from database using the ID introduced and assign it to a variable
             Password passwordToDelete = passwordRepo.findById(passwordId).get();
 
+            //Check if the user trying to access the data is the owner of the password saved on the database
             if (!Objects.equals(passwordToDelete.getUserId(), user.get().getId())) {
                 return new ResponseEntity<>("This password doesn't belong to this user!", HttpStatus.FORBIDDEN);
             } else {
 
+                //Delete the password from the database using the ID introduced by the user
                 passwordRepo.delete(passwordRepo.findById(passwordId).get());
 
                 return new ResponseEntity<>("Password deleted sucesfully", HttpStatus.OK);
@@ -207,10 +214,16 @@ public class PasswordController {
         }
     }
 
+    /**
+     * Method used to log out the user
+     *
+     * @return
+     */
+
     @GetMapping("/log_out")
     public ResponseEntity<String> logoutUser() {
         //check if user is logged in, if not send error back
-        if (securityContext.getAuthentication() == null) {
+        if (securityContext.getAuthentication() == null || securityContext.getAuthentication().getName().equals("anonymousUser")) {
             return new ResponseEntity<>("No user logged in, please log in", HttpStatus.UNAUTHORIZED);
         } else {
 
@@ -228,8 +241,6 @@ public class PasswordController {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         securityContext = SecurityContextHolder.getContext();
-
-        System.out.println(securityContext);
 
         return new ResponseEntity<>("User signed-in successfully!.", HttpStatus.OK);
     }
@@ -262,5 +273,13 @@ public class PasswordController {
 
         return new ResponseEntity<>("User registered successfully", HttpStatus.OK);
 
+    }
+
+    @GetMapping("/testing")
+    public ResponseEntity<?> testing () {
+
+        System.out.println(SecurityContextHolder.getContext());
+
+        return new ResponseEntity<>("YAY", HttpStatus.OK);
     }
 }
