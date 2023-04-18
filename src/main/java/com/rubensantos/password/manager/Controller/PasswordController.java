@@ -9,7 +9,6 @@ import com.rubensantos.password.manager.Entity.User;
 import com.rubensantos.password.manager.Repository.PasswordRepo;
 import com.rubensantos.password.manager.Repository.RoleRepo;
 import com.rubensantos.password.manager.Repository.UserRepo;
-import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,9 +17,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
+import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
 
