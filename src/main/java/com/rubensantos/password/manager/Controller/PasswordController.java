@@ -1,19 +1,27 @@
 package com.rubensantos.password.manager.Controller;
 
+import com.rubensantos.password.manager.Dto.LoginDto;
+import com.rubensantos.password.manager.Dto.SignUpDto;
 import com.rubensantos.password.manager.Encryption.PasswordEncryption;
 import com.rubensantos.password.manager.Entity.Password;
+import com.rubensantos.password.manager.Entity.Role;
 import com.rubensantos.password.manager.Entity.User;
 import com.rubensantos.password.manager.Repository.PasswordRepo;
+import com.rubensantos.password.manager.Repository.RoleRepo;
 import com.rubensantos.password.manager.Repository.UserRepo;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.request.WebRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +34,14 @@ public class PasswordController {
     @Autowired
     private UserRepo userRepo;
 
+    @Autowired
+    private RoleRepo roleRepository;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     PasswordEncryption passwordEncryption = new PasswordEncryption();
 
@@ -125,36 +141,46 @@ public class PasswordController {
         return passwordRepo.findById(id);
     }
 
-    /**
-     * Method used to log in the user into the application
-     *
-     * @param username Username used on register
-     * @param password Password used on register
-     * @return The user back
-     */
-    @GetMapping("/userLogin/{username}/{password}")
-    public User userLogIn(@PathVariable(name = "username") String username, @PathVariable(name = "password") String password) {
-        return null;
+
+    @PostMapping("/signin")
+    public ResponseEntity<String> authenticateUser(@RequestBody LoginDto loginDto){
+        Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                loginDto.getUsernameOrEmail(), loginDto.getPassword()));
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return new ResponseEntity<>("User signed-in successfully!.", HttpStatus.OK);
     }
 
-    /**
-     * Method used to register the user and save it on the database
-     *
-     * @param username Desired username to register
-     * @param password Desired password to register
-     * @param email Desired email to register
-     * @return The registered user back
-     */
-    @PostMapping("/userRegistration/{username}/{password}/{email}")
-    public User userRegistration(@PathVariable(name = "username") String username, @PathVariable(name = "password") String password, @PathVariable(name = "email") String email) {
-        User userToSave = new User();
-        userToSave.setEmail(email);
-        userToSave.setPassword(passwordEncryption.encryptPassword(password));
-        userToSave.setUsername(username);
 
-        userRepo.save(userToSave);
+    @PostMapping("/signup")
+    public ResponseEntity<?> registerUser(@RequestBody SignUpDto signUpDto){
 
-        return userToSave;
+        // checks if username exists on the database
+        if(userRepo.existsByUsername(signUpDto.getUsername())){
+            return new ResponseEntity<>("Username is already taken!", HttpStatus.BAD_REQUEST);
+        }
+
+        // checks if email exists on the database
+        if(userRepo.existsByEmail(signUpDto.getEmail())){
+            return new ResponseEntity<>("Email is already taken!", HttpStatus.BAD_REQUEST);
+        }
+
+        // create user object
+        User user = new User();
+        user.setName(signUpDto.getName());
+        user.setUsername(signUpDto.getUsername());
+        user.setEmail(signUpDto.getEmail());
+        user.setPassword(passwordEncoder.encode(signUpDto.getPassword()));
+
+        Role roles = roleRepository.findByName("ROLE_ADMIN").get();
+        user.setRoles(Collections.singleton(roles));
+
+        userRepo.save(user);
+
+        System.out.println(user.getEmail());
+
+        return new ResponseEntity<>("User registered successfully", HttpStatus.OK);
+
     }
 
 }
