@@ -15,7 +15,7 @@ public class Password {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
 
-    private Integer userId;
+    private Long userId;
 
     private String username;
 

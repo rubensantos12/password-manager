@@ -6,15 +6,15 @@ import com.rubensantos.password.manager.Entity.User;
 import com.rubensantos.password.manager.Repository.PasswordRepo;
 import com.rubensantos.password.manager.Repository.UserRepo;
 import com.rubensantos.password.manager.UserStatus.CustomStatus;
-import jakarta.transaction.Status;
-import org.jasypt.util.password.PasswordEncryptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @RestController
@@ -26,8 +26,6 @@ public class PasswordController {
     @Autowired
     private UserRepo userRepo;
 
-    private BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
-
     PasswordEncryption passwordEncryption = new PasswordEncryption();
 
     /**
@@ -38,20 +36,33 @@ public class PasswordController {
      */
 
     @GetMapping("/getPassword/{id}")
-    public Password getPassword(@PathVariable(name = "id") Integer id, @RequestBody @Valid User currentUser) {
+    public ResponseEntity<Password> getPassword(@PathVariable(name = "id") Integer id, @RequestBody @Valid User currentUser) {
 
         //Retrieve user from database using the body received
-        Optional<User> loggedInUser = userRepo.findByUsername(currentUser.getUsername());
+        Optional<User> databaseUser = userRepo.findByUsername(currentUser.getUsername());
 
-        if (!loggedInUser.get().isLoggedIn()) {
-            return null;
+        if (databaseUser.toString().equals("Optional.empty") || !databaseUser.get().getUsername().equals(currentUser.getUsername())) {
+            return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
+        }
+
+        String decryptedDatabasePassword =  passwordEncryption.decryptPassword(databaseUser.get().getPassword());
+
+        //Check if user is logged in or not
+        if (databaseUser.toString().equals("Optional.empty") ||
+                !Objects.equals(decryptedDatabasePassword, currentUser.getPassword()) ||
+                !databaseUser.get().isLoggedIn()) {
+            return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
         } else {
 
             //Retrieve the password from the database and assign it to a variable
             Optional<Password> encryptedPassword = passwordRepo.findById(id);
 
-            if (encryptedPassword.get().getUserId() != loggedInUser.get().getId()) {
-                return null;
+            if (encryptedPassword.toString().equals("Optional.empty")) {
+                return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            }
+
+            if (encryptedPassword.get().getUserId() != databaseUser.get().getId()) {
+                return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
             } else {
 
                 //Create a new variable to later save the decrypted password
@@ -64,7 +75,7 @@ public class PasswordController {
                 decryptedPassword.setUrl(encryptedPassword.get().getUrl());
 
                 //Returns the decrypted password to the user
-                return decryptedPassword;
+                return new ResponseEntity<>(decryptedPassword, HttpStatus.OK);
             }
         }
     }
@@ -76,17 +87,27 @@ public class PasswordController {
      */
 
     @GetMapping("/getAllPasswords")
-    public List<Password> getAllPasswords(@RequestBody @Valid User currentUser) {
+    public ResponseEntity<List<Password>> getAllPasswords(@RequestBody @Valid User currentUser) {
 
         //Retrieve user from database using the body received
-        Optional<User> loggedInUser = userRepo.findByUsername(currentUser.getUsername());
+        Optional<User> databaseUser = userRepo.findByUsername(currentUser.getUsername());
 
-        if (!loggedInUser.get().isLoggedIn()) {
-            return null;
+        if (databaseUser.toString().equals("Optional.empty") || !databaseUser.get().getUsername().equals(currentUser.getUsername())) {
+            return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
+        }
+
+        String decryptedPassword =  passwordEncryption.decryptPassword(databaseUser.get().getPassword());
+
+        //Check if user is logged in or not
+        if (databaseUser.toString().equals("Optional.empty") ||
+                !Objects.equals(decryptedPassword, currentUser.getPassword()) ||
+                !databaseUser.get().isLoggedIn()) {
+            return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
         } else {
 
+
             //Retrieve all the passwords from the database and save on an Iterable list
-            Iterable<Password> listOfEncryptedPasswords = passwordRepo.findAllByUserId(loggedInUser.get().getId());
+            Iterable<Password> listOfEncryptedPasswords = passwordRepo.findAllByUserId(databaseUser.get().getId());
 
             //Create a new List to save all the passwords after they are decrypted
             List<Password> listOfDecryptedPasswords = new ArrayList<>();
@@ -106,7 +127,7 @@ public class PasswordController {
                 listOfDecryptedPasswords.add(passwordToSave);
             }
 
-            return listOfDecryptedPasswords;
+            return new ResponseEntity<>(listOfDecryptedPasswords, HttpStatus.OK);
         }
     }
 
@@ -118,18 +139,26 @@ public class PasswordController {
      */
 
     @PostMapping("/savePassword/{username}/{password}/{website}/{url}")
-    public String savePassword(@PathVariable(name = "username") String username,
+    public ResponseEntity<String> savePassword(@PathVariable(name = "username") String username,
                                @PathVariable(name = "password") String password,
                                @PathVariable(name = "website") String website,
                                @PathVariable(name = "url") String url,
                                @Valid @RequestBody User currentUser) {
 
         //Retrieve user from database using the body received
-        Optional<User> loggedInUser = userRepo.findByUsername(currentUser.getUsername());
+        Optional<User> databaseUser = userRepo.findByUsername(currentUser.getUsername());
+
+        if (databaseUser.toString().equals("Optional.empty") || !databaseUser.get().getUsername().equals(currentUser.getUsername())) {
+            return new ResponseEntity<>("User doesn't exists", HttpStatus.FORBIDDEN);
+        }
+
+        String decryptedPassword =  passwordEncryption.decryptPassword(databaseUser.get().getPassword());
 
         //Check if user is logged in or not
-        if (!loggedInUser.get().isLoggedIn()) {
-            return null;
+        if (databaseUser.toString().equals("Optional.empty") ||
+                !Objects.equals(decryptedPassword, currentUser.getPassword()) ||
+                !databaseUser.get().isLoggedIn()) {
+            return new ResponseEntity<>("User is not logged in", HttpStatus.FORBIDDEN);
         } else {
 
             //Create a new Password and set all the required parameters to later save on the database
@@ -138,53 +167,54 @@ public class PasswordController {
             passwordToSave.setUsername(username);
             passwordToSave.setWebsite(website);
             passwordToSave.setUrl(url);
+            passwordToSave.setUserId(databaseUser.get().getId());
 
             //Save the password on the database
             passwordRepo.save(passwordToSave);
 
-            return "Password successfully saved!";
+            return new ResponseEntity<>("Password saved successfully", HttpStatus.FORBIDDEN);
+
         }
     }
 
     @PostMapping("/users/register")
-    public CustomStatus registerUser(@Valid @RequestBody User newUser) {
+    public ResponseEntity<String> registerUser(@Valid @RequestBody User newUser) {
         List<User> users = userRepo.findAll();
 
         for (User user : users) {
-            if (user.equals(newUser)) {
-                System.out.println("User Already exists!");
-                return CustomStatus.USER_ALREADY_EXISTS;
+            if (user.getUsername().equals(newUser.getUsername())) {
+                return new ResponseEntity<>("User already exists", HttpStatus.FORBIDDEN);
             }
         }
         String decryptedPassword = newUser.getPassword();
 
-        newUser.setPassword(bCryptPasswordEncoder.encode(decryptedPassword));
+        newUser.setPassword(passwordEncryption.encryptPassword(decryptedPassword));
         userRepo.save(newUser);
-        return CustomStatus.SUCCESS;
+        return new ResponseEntity<>("User registered", HttpStatus.OK);
     }
 
     @PostMapping("/users/login")
-    public CustomStatus loginUser(@Valid @RequestBody User user) {
+    public ResponseEntity<String> loginUser(@Valid @RequestBody User user) {
         List<User> users = userRepo.findAll();
         for (User other : users) {
-            boolean passwordMatches = bCryptPasswordEncoder.matches(user.getPassword(), other.getPassword());
+            boolean passwordMatches = passwordEncryption.decryptPassword(other.getPassword()).equals(user.getPassword());
             System.out.println(passwordMatches);
             boolean usernameMatches = other.getUsername().equals(user.getUsername());
             if (passwordMatches && usernameMatches && other.isLoggedIn()) {
-                return CustomStatus.USER_ALREADY_LOGGED_IN;
+                return new ResponseEntity<>("User already logged in", HttpStatus.FORBIDDEN);
             } else if (passwordMatches && usernameMatches) {
                 user.setId(other.getId());
                 user.setLoggedIn(true);
-                user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
+                user.setPassword(passwordEncryption.encryptPassword(user.getPassword()));
                 userRepo.save(user);
-                return CustomStatus.SUCCESS;
+                return new ResponseEntity<>("User logged in", HttpStatus.OK);
             }
         }
-        return CustomStatus.FAILURE;
+        return new ResponseEntity<>("User doesn't exists", HttpStatus.NOT_FOUND);
     }
 
     @PostMapping("/users/logout")
-    public CustomStatus logUserOut(@Valid @RequestBody User user) {
+    public ResponseEntity<String> logUserOut(@Valid @RequestBody User user) {
         List<User> users = userRepo.findAll();
         for (User other : users) {
             if (other.getUsername().equals(user.getUsername()) && other.isLoggedIn()) {
@@ -192,10 +222,10 @@ public class PasswordController {
                 user.setLoggedIn(false);
                 user.setPassword(other.getPassword());
                 userRepo.save(user);
-                return CustomStatus.SUCCESS;
+                return new ResponseEntity<>("User logged out", HttpStatus.OK);
             }
         }
-        return CustomStatus.FAILURE;
+        return new ResponseEntity<>("User is not logged in", HttpStatus.FORBIDDEN);
     }
 
     @DeleteMapping("/users/all")
