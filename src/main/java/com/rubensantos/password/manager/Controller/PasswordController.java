@@ -177,6 +177,35 @@ public class PasswordController {
         }
     }
 
+    @DeleteMapping("/deletePassword/{id}")
+    public ResponseEntity<String> deletePassword(@PathVariable(name = "id") int id, @RequestBody @Valid User currentUser) {
+
+        Optional<User> databaseUser = userRepo.findByUsername(currentUser.getUsername());
+
+        if (databaseUser.toString().equals("Optional.empty") || !databaseUser.get().getUsername().equals(currentUser.getUsername())) {
+            return new ResponseEntity<>("User doesn't exists", HttpStatus.FORBIDDEN);
+        }
+
+        String decryptedPassword = passwordEncryption.decryptPassword(databaseUser.get().getPassword());
+
+        //Check if user is logged in or not
+        if (databaseUser.toString().equals("Optional.empty") ||
+                !Objects.equals(decryptedPassword, currentUser.getPassword()) ||
+                !databaseUser.get().isLoggedIn()) {
+            return new ResponseEntity<>("User is not logged in", HttpStatus.FORBIDDEN);
+        } else {
+
+            Optional<Password> passwordToDelete = passwordRepo.findById(id);
+
+            if (passwordToDelete.toString().equals("Optional.empty") || !passwordToDelete.get().getUserId().equals(databaseUser.get().getId())) {
+                return new ResponseEntity<>("Password with said ID doesn't exists", HttpStatus.BAD_REQUEST);
+            } else {
+                passwordRepo.deleteById(id);
+                return new ResponseEntity<>("Password deleted successfully", HttpStatus.OK);
+            }
+        }
+    }
+
     @PostMapping("/users/register")
     public ResponseEntity<String> registerUser(@Valid @RequestBody User newUser) {
         List<User> users = userRepo.findAll();
