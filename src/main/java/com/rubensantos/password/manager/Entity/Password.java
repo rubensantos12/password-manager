@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Entity
-@Table(name="Password")
+@Table(name="passwords")
 public class Password {
 
     @Id
