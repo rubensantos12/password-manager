@@ -23,7 +23,5 @@ public class Password {
 
     private String website;
 
-
-
     private String url;
 }

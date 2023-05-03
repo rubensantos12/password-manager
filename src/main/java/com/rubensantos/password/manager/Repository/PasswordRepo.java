@@ -11,4 +11,5 @@ public interface PasswordRepo extends CrudRepository<Password, Integer> {
 
     Optional<Password> findByUserId(Integer id);
     Iterable<Password> findAllByUserId(Integer id);
+
 }
