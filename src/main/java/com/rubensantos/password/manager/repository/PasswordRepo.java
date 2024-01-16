@@ -1,11 +1,8 @@
-package com.rubensantos.password.manager.Repository;
+package com.rubensantos.password.manager.repository;
 
-import com.rubensantos.password.manager.Entity.Password;
-import com.rubensantos.password.manager.Entity.User;
+import com.rubensantos.password.manager.entity.Password;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
-
-import java.util.Optional;
 
 @Repository
 public interface PasswordRepo extends CrudRepository<Password, Integer> {

@@ -1,6 +1,6 @@
-package com.rubensantos.password.manager.Repository;
+package com.rubensantos.password.manager.repository;
 
-import com.rubensantos.password.manager.Entity.User;
+import com.rubensantos.password.manager.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

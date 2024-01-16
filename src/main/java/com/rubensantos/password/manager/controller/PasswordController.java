@@ -1,17 +1,15 @@
-package com.rubensantos.password.manager.Controller;
+package com.rubensantos.password.manager.controller;
 
-import com.rubensantos.password.manager.Encryption.PasswordEncryption;
-import com.rubensantos.password.manager.Entity.Password;
-import com.rubensantos.password.manager.Entity.User;
-import com.rubensantos.password.manager.Repository.PasswordRepo;
-import com.rubensantos.password.manager.Repository.UserRepo;
-import com.rubensantos.password.manager.UserStatus.CustomStatus;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.rubensantos.password.manager.encryption.PasswordEncryption;
+import com.rubensantos.password.manager.entity.Password;
+import com.rubensantos.password.manager.entity.User;
+import com.rubensantos.password.manager.repository.PasswordRepo;
+import com.rubensantos.password.manager.repository.UserRepo;
+import com.rubensantos.password.manager.userstatus.CustomStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -20,13 +18,16 @@ import java.util.Optional;
 @RestController
 public class PasswordController {
 
-    @Autowired
-    private PasswordRepo passwordRepo;
+    private final PasswordRepo passwordRepo;
 
-    @Autowired
-    private UserRepo userRepo;
+    private final UserRepo userRepo;
 
     PasswordEncryption passwordEncryption = new PasswordEncryption();
+
+    public PasswordController(PasswordRepo passwordRepo, UserRepo userRepo) {
+        this.passwordRepo = passwordRepo;
+        this.userRepo = userRepo;
+    }
 
     /**
      * Method used to retrieve a password from the database by ID
@@ -36,12 +37,12 @@ public class PasswordController {
      */
 
     @GetMapping("/getPassword/{id}")
-    public ResponseEntity<Password> getPassword(@PathVariable(name = "id") Integer id, @RequestBody @Valid User currentUser) {
+    public ResponseEntity<Password> getPassword(@PathVariable(name = "id") Integer id, @RequestBody User currentUser) {
 
         //Retrieve user from database using the body received
         Optional<User> databaseUser = userRepo.findByUsername(currentUser.getUsername());
 
-        if (databaseUser.toString().equals("Optional.empty") || !databaseUser.get().getUsername().equals(currentUser.getUsername())) {
+        if (databaseUser.isPresent()) {
             return new ResponseEntity<>(null, HttpStatus.FORBIDDEN);
         }
 
@@ -87,7 +88,7 @@ public class PasswordController {
      */
 
     @GetMapping("/getAllPasswords")
-    public ResponseEntity<List<Password>> getAllPasswords(@RequestBody @Valid User currentUser) {
+    public ResponseEntity<List<Password>> getAllPasswords(@RequestBody User currentUser) {
 
         //Retrieve user from database using the body received
         Optional<User> databaseUser = userRepo.findByUsername(currentUser.getUsername());
@@ -143,7 +144,7 @@ public class PasswordController {
                                @PathVariable(name = "password") String password,
                                @PathVariable(name = "website") String website,
                                @PathVariable(name = "url") String url,
-                               @Valid @RequestBody User currentUser) {
+                               @RequestBody User currentUser) {
 
         //Retrieve user from database using the body received
         Optional<User> databaseUser = userRepo.findByUsername(currentUser.getUsername());
@@ -178,7 +179,7 @@ public class PasswordController {
     }
 
     @DeleteMapping("/deletePassword/{id}")
-    public ResponseEntity<String> deletePassword(@PathVariable(name = "id") int id, @RequestBody @Valid User currentUser) {
+    public ResponseEntity<String> deletePassword(@PathVariable(name = "id") int id, @RequestBody User currentUser) {
 
         Optional<User> databaseUser = userRepo.findByUsername(currentUser.getUsername());
 
@@ -207,7 +208,7 @@ public class PasswordController {
     }
 
     @PostMapping("/users/register")
-    public ResponseEntity<String> registerUser(@Valid @RequestBody User newUser) {
+    public ResponseEntity<String> registerUser(@RequestBody User newUser) {
         List<User> users = userRepo.findAll();
 
         for (User user : users) {
@@ -223,7 +224,7 @@ public class PasswordController {
     }
 
     @PostMapping("/users/login")
-    public ResponseEntity<String> loginUser(@Valid @RequestBody User user) {
+    public ResponseEntity<String> loginUser(@RequestBody User user) {
         List<User> users = userRepo.findAll();
         for (User other : users) {
             boolean passwordMatches = passwordEncryption.decryptPassword(other.getPassword()).equals(user.getPassword());
@@ -243,7 +244,7 @@ public class PasswordController {
     }
 
     @PostMapping("/users/logout")
-    public ResponseEntity<String> logUserOut(@Valid @RequestBody User user) {
+    public ResponseEntity<String> logUserOut(@RequestBody User user) {
         List<User> users = userRepo.findAll();
         for (User other : users) {
             if (other.getUsername().equals(user.getUsername()) && other.isLoggedIn()) {

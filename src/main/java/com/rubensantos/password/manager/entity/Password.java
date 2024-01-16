@@ -1,4 +1,4 @@
-package com.rubensantos.password.manager.Entity;
+package com.rubensantos.password.manager.entity;
 
 
 import jakarta.persistence.*;

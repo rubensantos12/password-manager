@@ -1,4 +1,4 @@
-package com.rubensantos.password.manager.Encryption;
+package com.rubensantos.password.manager.encryption;
 
 import org.jasypt.util.text.BasicTextEncryptor;
 
@@ -28,7 +28,7 @@ public class PasswordEncryption {
     /**
      *
      * @param password The password extracted from the Password object
-     * @see com.rubensantos.password.manager.Entity.Password
+     * @see com.rubensantos.password.manager.entity.Password
      * @return The password encrypted
      */
 
@@ -39,7 +39,7 @@ public class PasswordEncryption {
     /**
      *
      * @param encryptedPassword The password extracted from the Password object
-     * @see com.rubensantos.password.manager.Entity.Password
+     * @see com.rubensantos.password.manager.entity.Password
      * @return The password decrypted
      */
 

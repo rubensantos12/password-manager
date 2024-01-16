@@ -1,4 +1,4 @@
-package com.rubensantos.password.manager.Encryption;
+package com.rubensantos.password.manager.encryption;
 
 import lombok.Getter;
 import lombok.Setter;

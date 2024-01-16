@@ -1,4 +1,4 @@
-package com.rubensantos.password.manager.UserStatus;
+package com.rubensantos.password.manager.userstatus;
 
 public enum CustomStatus {
     SUCCESS,

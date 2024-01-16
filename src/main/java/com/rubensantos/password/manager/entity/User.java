@@ -1,10 +1,8 @@
-package com.rubensantos.password.manager.Entity;
+package com.rubensantos.password.manager.entity;
 
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 
 import javax.validation.constraints.NotBlank;
 import java.util.Objects;
