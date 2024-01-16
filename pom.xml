@@ -9,7 +9,7 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.rubensantos</groupId>
-	<artifactId>password.manager</artifactId>
+	<artifactId>password-manager</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Password Manager</name>
 	<description>Simple API for a Password Manager</description>
