@@ -10,6 +10,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -88,7 +95,7 @@ public class PasswordController {
      */
 
     @GetMapping("/getAllPasswords")
-    public ResponseEntity<List<Password>> getAllPasswords(@RequestBody User currentUser) {
+    public ResponseEntity<List<Password>> getAllPasswords(@RequestBody User currentUser) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidKeySpecException, BadPaddingException, InvalidKeyException {
 
         //Retrieve user from database using the body received
         Optional<User> databaseUser = userRepo.findByUsername(currentUser.getUsername());
@@ -144,7 +151,7 @@ public class PasswordController {
                                @PathVariable(name = "password") String password,
                                @PathVariable(name = "website") String website,
                                @PathVariable(name = "url") String url,
-                               @RequestBody User currentUser) {
+                               @RequestBody User currentUser) throws Exception {
 
         //Retrieve user from database using the body received
         Optional<User> databaseUser = userRepo.findByUsername(currentUser.getUsername());
@@ -179,7 +186,7 @@ public class PasswordController {
     }
 
     @DeleteMapping("/deletePassword/{id}")
-    public ResponseEntity<String> deletePassword(@PathVariable(name = "id") int id, @RequestBody User currentUser) {
+    public ResponseEntity<String> deletePassword(@PathVariable(name = "id") int id, @RequestBody User currentUser) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidKeySpecException, BadPaddingException, InvalidKeyException {
 
         Optional<User> databaseUser = userRepo.findByUsername(currentUser.getUsername());
 
@@ -208,7 +215,7 @@ public class PasswordController {
     }
 
     @PostMapping("/users/register")
-    public ResponseEntity<String> registerUser(@RequestBody User newUser) {
+    public ResponseEntity<String> registerUser(@RequestBody User newUser) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidKeySpecException, BadPaddingException, InvalidKeyException {
         List<User> users = userRepo.findAll();
 
         for (User user : users) {
@@ -224,11 +231,11 @@ public class PasswordController {
     }
 
     @PostMapping("/users/login")
-    public ResponseEntity<String> loginUser(@RequestBody User user) {
+    public ResponseEntity<String> loginUser(@RequestBody User user) throws InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, InvalidKeySpecException, BadPaddingException, InvalidKeyException {
         List<User> users = userRepo.findAll();
         for (User other : users) {
             boolean passwordMatches = passwordEncryption.decryptPassword(other.getPassword()).equals(user.getPassword());
-            System.out.println(passwordMatches);
+            logger.info(passwordMatches);
             boolean usernameMatches = other.getUsername().equals(user.getUsername());
             if (passwordMatches && usernameMatches && other.isLoggedIn()) {
                 return new ResponseEntity<>("User already logged in", HttpStatus.FORBIDDEN);
