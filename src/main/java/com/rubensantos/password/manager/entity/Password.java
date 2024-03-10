@@ -15,8 +15,6 @@ public class Password {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Integer id;
 
-    private Long userId;
-
     private String username;
 
     private String password;
